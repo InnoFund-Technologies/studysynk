@@ -115,12 +115,11 @@ export interface IPaper {
 export interface IStudent {
     _id: string;
     name: string;
-    password: string;
     email: string;
     bio: string;
     image: string;
     streak: number;
-    lastLogin: Date;
+    lastLogin: string | Date;
     university: {
         name: IUniversity['name'];
         id: IUniversity['_id'];

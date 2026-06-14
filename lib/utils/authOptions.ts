@@ -1,49 +1,38 @@
-import CredentialsProvider from "next-auth/providers/credentials";
 import {NextAuthOptions} from "next-auth";
-import bcrypt from "bcrypt";
-import {Student} from "@/lib/models";
-import connectMongoDB from "@/lib/connectMongoDB";
+import GoogleProvider from "next-auth/providers/google";
+import {create, findOne, update} from "@/lib/db";
 import {IStudent} from "@/lib/types";
-import GoogleProvider from "next-auth/providers/google"
+
+/**
+ * Update a student's login streak. Replaces the former Mongoose instance
+ * method. Returns the new streak so the session can reflect it immediately.
+ */
+async function checkStreak(student: IStudent & {_id: string}): Promise<number> {
+    const now = new Date();
+    const lastLoginDate = new Date(student.lastLogin);
+    let streak = student.streak ?? 0;
+
+    const sameDay = now.toDateString() === lastLoginDate.toDateString();
+    if (!sameDay) {
+        const daysSinceLastLogin =
+            (now.valueOf() - lastLoginDate.valueOf()) / (1000 * 3600 * 24);
+        streak = daysSinceLastLogin >= 2 ? 1 : streak + 1;
+    }
+
+    await update("students", student._id, {streak, lastLogin: now.toISOString()});
+    return streak;
+}
 
 const authOptions: NextAuthOptions = {
     pages: {
-        signIn: '/signin',
-        newUser: '/signup',
-        error: '/signin'
+        signIn: "/signin",
+        newUser: "/signup",
+        error: "/signin",
     },
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-        }),
-        CredentialsProvider({
-            name: "credentials",
-            type: "credentials",
-            credentials: {
-                email: {label: "Username", type: "email"},
-                password: {label: "Password", type: "password"}
-            },
-            authorize: async (credentials) => {
-                if (!credentials || !credentials.email || !credentials.password) {
-                    return null
-                }
-                const {email, password} = credentials;
-                await connectMongoDB();
-                const student = await Student.findOne({email});
-                if (!student) {
-                    return null;
-                }
-
-                // check if the password is correct
-                const isMatch = await bcrypt.compare(password, student.password);
-
-                if (!isMatch) {
-                    return null;
-                }
-
-                return student;
-            },
         }),
     ],
     secret: process.env.NEXTAUTH_SECRET,
@@ -52,43 +41,50 @@ const authOptions: NextAuthOptions = {
         maxAge: 60 * 60, // 1 hour
     },
     callbacks: {
-        async signIn({account, profile}): Promise<string | boolean> {
-            if (!account) {
-                return true
+        async signIn({account, profile, user}): Promise<string | boolean> {
+            if (account?.provider !== "google" || !profile?.email) {
+                return true;
             }
-            if (account.provider === "google") {
-                if (!profile) {
-                    return true
-                }
-                return profile.email_verified && profile.email?.endsWith("@students.nust.ac.zw") || true
+
+            // First-time sign in: provision a student record in Firestore.
+            const existing = await findOne<IStudent>("students", "email", profile.email);
+            if (!existing) {
+                await create("students", {
+                    name: user.name ?? profile.name ?? "",
+                    email: profile.email,
+                    image: user.image ?? (profile as {picture?: string}).picture ?? "",
+                    bio: "",
+                    streak: 1,
+                    lastLogin: new Date().toISOString(),
+                });
             }
-            return true // Do different verification for other providers that don't have `email_verified`
+
+            return true;
         },
         async session({session}) {
-            await connectMongoDB();
-            const student = await Student.findOne({email: session.user?.email}) as IStudent & {
-                checkStreak: () => Promise<void>
-            };
+            if (!session.user?.email) return session;
 
+            const student = await findOne<IStudent>("students", "email", session.user.email);
             if (student) {
+                let streak = student.streak;
                 try {
-                    await student.checkStreak();
+                    streak = await checkStreak(student);
                 } catch (error) {
-                    console.error('Error checking login streak:', error);
+                    console.error("Error checking login streak:", error);
                 }
                 session.user = {
                     ...session.user,
                     _id: student._id,
-                    streak: student.streak,
+                    streak,
                     university: student.university,
                     program: student.program,
                     department: student.department,
                 };
             }
 
-            return session
-        }
-    }
-}
+            return session;
+        },
+    },
+};
 
-export default authOptions
+export default authOptions;

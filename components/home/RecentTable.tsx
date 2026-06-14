@@ -2,18 +2,11 @@ import * as React from 'react';
 import Table from '@mui/joy/Table';
 import {IPaper} from "@/lib/types";
 import Chip from "@mui/joy/Chip";
-import connectMongoDB from "@/lib/connectMongoDB";
-import {Paper} from "@/lib/models";
+import {findMany} from "@/lib/db";
 import {trimProgram} from "@/lib/utils/helper";
 
 const getCourses = async (): Promise<IPaper[]> => {
-    await connectMongoDB();
-    const papers = Paper.find({})
-
-    if (papers) {
-        return papers
-    }
-    return [];
+    return findMany<IPaper>("papers");
 }
 
 export default async function RecentTable() {

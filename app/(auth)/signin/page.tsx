@@ -11,44 +11,16 @@ import IconButton from "@mui/joy/IconButton";
 import DocumentMagnifyingGlassIcon from "@heroicons/react/24/solid/DocumentMagnifyingGlassIcon";
 import {signIn, useSession} from "next-auth/react";
 import {useRouter} from "next/navigation";
-import FormControl from "@mui/joy/FormControl";
-import Input from "@mui/joy/Input";
-import NextLink from "next/link";
-import MuiLink from "@mui/joy/Link";
-import notify from "@/lib/utils/notify";
 import {ToastContainer} from "react-toastify";
 
 export default function SignIn() {
     const session = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(false);
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const formData = new FormData(event.currentTarget);
+    const handleGoogleSignIn = async () => {
         setLoading(true);
-        await signIn("credentials", {
-            redirect: false,
-            email: formData.get("email") as string,
-            password: formData.get("password") as string,
-        }).then((res) => {
-            if (!res) {
-                notify("An error occurred while trying to sign in!", "error")
-                return;
-            }
-            if (res.ok) {
-                return router.replace('/');
-            }
-            if (res.error) {
-                if (res.error.includes('CredentialsSignin')) {
-                    notify("Invalid sign in credentials!", "error");
-                }
-                return setError(!!res);
-            }
-        }).finally(() => {
-            setLoading(false);
-        });
+        await signIn("google", {callbackUrl: "/"});
     }
 
     if (!session) {
@@ -142,46 +114,16 @@ export default function SignIn() {
                                 Sign in to your account
                             </Typography>
                             <Typography level="body-sm" sx={{my: 1, mb: 3}}>
-                                Welcome back
+                                Welcome back. Continue with your Google account.
                             </Typography>
                         </div>
-
-                        <form onSubmit={handleSubmit} noValidate>
-                            <FormControl required id="email-wrapper">
-                                <FormLabel htmlFor="email-wrapper" id="label-email">Email</FormLabel>
-                                <Input type="email" name="email" error={error}/>
-                            </FormControl>
-                            <FormControl required id="password-wrapper">
-                                <FormLabel htmlFor="password-wrapper" id="label-password">Password</FormLabel>
-                                <Input type="password" name="password"
-                                       error={error}
-                                       slotProps={{
-                                           input: {
-                                               id: "signin-password"
-                                           }
-                                       }}/>
-                            </FormControl>
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <MuiLink component={NextLink} level={"body-sm"} href={"/signup"}> Sign up </MuiLink>
-                                <MuiLink component={NextLink} level={"body-sm"} href={"#"}> Forgot your
-                                    password? </MuiLink>
-                            </Box>
-                            <Button type="submit" fullWidth loading={loading}>
-                                Sign in
-                            </Button>
-                        </form>
 
                         <Button
                             variant="outlined"
                             color="neutral"
                             fullWidth
-                            onClick={() => signIn('google')}
+                            loading={loading}
+                            onClick={handleGoogleSignIn}
                             startDecorator={
                                 <SvgIcon fontSize="xl">
                                     <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">

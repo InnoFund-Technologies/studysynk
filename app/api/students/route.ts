@@ -1,24 +1,22 @@
-import connectMongoDB from "@/lib/connectMongoDB";
 import {NextResponse} from "next/server";
-import {Student} from "@/lib/models";
+import {findOne, update} from "@/lib/db";
+import {IStudent} from "@/lib/types";
 
 export async function POST(request: Request) {
     const res = await request.json();
-    await connectMongoDB();
-    let student = await Student.findOne({email: res.email});
+    const student = await findOne<IStudent>("students", "email", res.email);
 
-    student.bio = res.bio;
-    student.university = res.university;
-    student.faculty = res.faculty;
-    student.department = res.department;
-    student.program = res.program;
-    student.save();
+    if (!student) {
+        return NextResponse.json({message: "Account not found!"}, {status: 404});
+    }
+
+    await update("students", student._id, {
+        bio: res.bio,
+        university: res.university,
+        faculty: res.faculty,
+        department: res.department,
+        program: res.program,
+    });
 
     return NextResponse.json({message: "Profile updated successfully!"});
-}
-
-export async function GET(request: Request) {
-    const res = await request.json();
-
-    return NextResponse.json({message: "Sign up successful!"});
 }

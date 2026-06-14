@@ -1,36 +1,29 @@
 import {NextResponse} from "next/server";
-import connectMongoDB from "@/lib/connectMongoDB";
-import {Course, Program} from "@/lib/models";
+import {create, findMany, findOne, pushToArray} from "@/lib/db";
 import {lower} from "@/lib/utils/helper";
 import {ICourse} from "@/lib/types";
 
 export async function POST(request: Request) {
     const res = await request.json();
-    await lower(res, 'id');
+    await lower(res, "id");
 
-    await connectMongoDB();
-    const isExist = await Course.findOne({name: res.name}).select("_id");
+    const isExist = await findOne<ICourse>("courses", "name", res.name);
     if (isExist) {
         return NextResponse.json({message: "Course already exists!"});
     }
 
-    await Course.create(res).then((course) => {
-        (res.programs as ICourse['programs']).map(async (p) => {
-            const program = await Program.findById(p.programId);
+    const courseId = await create("courses", {papers: [], ...res});
 
-            program.courses.push(course.id);
-            await program.save();
-        })
-
-    })
-
+    await Promise.all(
+        (res.programs as ICourse["programs"]).map((p) =>
+            pushToArray("programs", p.programId, "courses", courseId),
+        ),
+    );
 
     return NextResponse.json({message: "Course created successfully!"});
 }
 
 export async function GET() {
-    await connectMongoDB();
-
-    const data = await Course.find({});
+    const data = await findMany<ICourse>("courses");
     return NextResponse.json(data);
 }

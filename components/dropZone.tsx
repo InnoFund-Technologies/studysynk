@@ -14,13 +14,19 @@ const activeStyles = {
 interface DropZoneProps {
     accept: string;
     inputId: string;
+    onFileChange?: (file: File | null) => void;
 }
 
 
-export default function DropZone({sx, accept, inputId, ...props}: CardProps & DropZoneProps) {
+export default function DropZone({sx, accept, inputId, onFileChange, ...props}: CardProps & DropZoneProps) {
     const inputRef = React.useRef<HTMLInputElement | null>(null)
     const [file, setFile] = React.useState<FileList | null>(null);
     const [dragActive, setDragActive] = React.useState<boolean>(false)
+
+    const updateFile = (files: FileList | null) => {
+        setFile(files);
+        onFileChange?.(files && files[0] ? files[0] : null);
+    }
 
     const handleFileDrag = (event: React.DragEvent<HTMLLabelElement | HTMLDivElement>) => {
         event.preventDefault();
@@ -32,7 +38,7 @@ export default function DropZone({sx, accept, inputId, ...props}: CardProps & Dr
         event.stopPropagation();
         setDragActive(false)
         if (event.dataTransfer.files[0]) {
-            setFile(event.dataTransfer.files)
+            updateFile(event.dataTransfer.files)
             if (inputRef.current) {
                 inputRef.current.files = event.dataTransfer.files
             }
@@ -42,11 +48,11 @@ export default function DropZone({sx, accept, inputId, ...props}: CardProps & Dr
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         event.preventDefault();
         if (event.target.files && event.target.files[0]) {
-            setFile(event.target.files);
+            updateFile(event.target.files);
         }
     }
 
-    const handleDelete = () => setFile(null);
+    const handleDelete = () => updateFile(null);
 
     return (
         <>

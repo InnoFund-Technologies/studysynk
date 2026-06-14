@@ -25,6 +25,8 @@ import SelectDepartment from "@/components/addnewpaper/select-department";
 import {useSession} from "next-auth/react";
 import {ICourse, IDepartment, IFaculty, IPaper, IProgram, IUniversity} from "@/lib/types";
 import {handleApiResponse} from "@/lib/utils/helper";
+import {uploadPaper} from "@/lib/utils/uploadPaper";
+import notify from "@/lib/utils/notify";
 
 
 export default function AddNewPage() {
@@ -36,6 +38,7 @@ export default function AddNewPage() {
     const [department, setDepartment] = React.useState<IDepartment | null>(null);
     const [program, setProgram] = React.useState<IProgram | null>(null);
     const [course, setCourse] = React.useState<ICourse | null>(null);
+    const [file, setFile] = React.useState<File | null>(null);
 
     const handleChange = (
         _event: React.SyntheticEvent | null,
@@ -45,14 +48,30 @@ export default function AddNewPage() {
     // Handle form submit
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (!file) {
+            notify("Please upload a PDF of the question paper.", "warning");
+            return;
+        }
+
         setIsLoading(true);
 
         const formData = new FormData(event.currentTarget);
 
+        let url: string;
+        try {
+            url = await uploadPaper(file);
+        } catch (error) {
+            console.error(error);
+            notify("Failed to upload the paper. Please try again.", "error");
+            setIsLoading(false);
+            return;
+        }
+
         const data = {
             ...Object.fromEntries(formData),
             paperType,
-            url: 'http://localhost:8080',
+            url,
             university: {
                 name: university?.name,
                 code: university?.code,
@@ -217,7 +236,8 @@ export default function AddNewPage() {
                                         flexDirection: 'column'
                                     }}>
 
-                                    <DropZone inputId={"file"} accept={"application/pdf"}/>
+                                    <DropZone inputId={"file"} accept={"application/pdf"}
+                                              onFileChange={(f) => setFile(f)}/>
 
                                     <FormControl sx={{flexGrow: 1}}>
                                         <FormLabel htmlFor="description" id="paper-description">Description&nbsp;

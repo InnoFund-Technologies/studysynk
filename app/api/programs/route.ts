@@ -1,40 +1,34 @@
-import connectMongoDB from "@/lib/connectMongoDB";
-import {Department, Program} from "@/lib/models";
 import {NextResponse} from "next/server";
+import {create, findMany, findOne, pushToArray} from "@/lib/db";
 import {lower} from "@/lib/utils/helper";
+import {IProgram} from "@/lib/types";
 
 export async function POST(request: Request) {
     const res = await request.json();
-    await lower(res, 'departmentId');
-
-    await connectMongoDB();
+    await lower(res, "departmentId");
 
     // check if Program exists
-    const isExist = await Program.findOne({name: res.name}).select("_id");
+    const isExist = await findOne<IProgram>("programs", "name", res.name);
     if (isExist) {
         return NextResponse.json({message: "Program already exists!"});
     }
 
-    // create Program to database
-    const program = await Program.create(res);
+    // create Program
+    const programId = await create("programs", {courses: [], ...res});
 
     // add Program to Department document
-    const department = await Department.findById(res.department.id)
-
-    department.programs.push(program.id);
-    await department.save();
+    await pushToArray("departments", res.department.id, "programs", programId);
 
     return NextResponse.json({message: "Program created successfully!"});
 }
 
 export async function GET(request: Request) {
-    const {searchParams} = new URL(request.url)
-    const departmentId = searchParams.get('departmentId');
-    await connectMongoDB();
+    const {searchParams} = new URL(request.url);
+    const departmentId = searchParams.get("departmentId");
     if (departmentId) {
-        const data = await Program.find({'department.id': departmentId});
+        const data = await findMany<IProgram>("programs", {field: "department.id", value: departmentId});
         return NextResponse.json(data);
     }
-    const data = await Program.find({});
+    const data = await findMany<IProgram>("programs");
     return NextResponse.json(data);
 }
