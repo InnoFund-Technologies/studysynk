@@ -45,8 +45,12 @@ export default function PaperPreviewProvider(
 
     const [paper, setPaper] = React.useState<IPaper | null>(null);
 
+    // Dismiss the preview when leaving a page that can open it. The home page
+    // and the papers list both surface papers, so keep it open there; clear it
+    // everywhere else (e.g. auth, profile) so it doesn't linger.
     React.useEffect(() => {
-        if (!currentRoute.includes("papers")) {
+        const canPreview = currentRoute === "/" || currentRoute.includes("papers");
+        if (!canPreview) {
             setPaper(null)
         }
     }, [currentRoute])

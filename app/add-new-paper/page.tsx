@@ -106,7 +106,10 @@ export default function AddNewPage() {
             method: 'POST',
             body: JSON.stringify(data),
         }).then(handleApiResponse(event))
-            .catch((error) => console.error(error))
+            .catch((error) => {
+                console.error(error);
+                notify("Could not submit the paper. Please check your connection and try again.", "error");
+            })
             .finally(() => {
                 setIsLoading(false);
             });

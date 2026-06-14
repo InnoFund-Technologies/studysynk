@@ -6,7 +6,14 @@ import ListBulletIcon from "@heroicons/react/24/outline/ListBulletIcon";
 import Box from "@mui/joy/Box";
 import React from "react";
 
-export default function FilterOptions() {
+export type PapersView = "grid" | "list";
+
+interface FilterOptionsProps {
+    view?: PapersView;
+    onViewChange?: (view: PapersView) => void;
+}
+
+export default function FilterOptions({view = "grid", onViewChange}: FilterOptionsProps) {
     return (
         <Box
             sx={{
@@ -17,7 +24,14 @@ export default function FilterOptions() {
             }}
         >
             <Box></Box>
-            <ToggleButtonGroup value="grid" color="neutral" size={"sm"}>
+            <ToggleButtonGroup
+                value={view}
+                color="neutral"
+                size={"sm"}
+                onChange={(_event, newView) => {
+                    if (newView) onViewChange?.(newView as PapersView);
+                }}
+            >
                 <IconButton value="grid" sx={{px: 1}}>
                     <Squares2X2Icon className="w-5 h-5 ss-icon"/>
                 </IconButton>

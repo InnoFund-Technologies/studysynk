@@ -13,38 +13,43 @@ import Image from "next/image";
 
 interface FileCardProps {
     paper: IPaper
+    view?: "grid" | "list"
 }
 
-export default function PaperCard({ paper }: FileCardProps) {
+export default function PaperCard({ paper, view = "grid" }: FileCardProps) {
     const { showPaperPreview } = usePaperPreview();
     const { createdAt, thumbnailUrl, title } = paper;
     // Older papers predate server-side thumbnails, or generation may have
     // failed — fall back to a document-icon placeholder.
     const [imageOk, setImageOk] = React.useState<boolean>(Boolean(thumbnailUrl));
+    const isList = view === "list";
 
     return (
         <Card
             variant="outlined"
+            orientation={isList ? "horizontal" : "vertical"}
             onClick={() => showPaperPreview(paper)}
             sx={{
                 p: 0,
                 boxShadow: 'none',
                 cursor: 'pointer',
                 overflow: 'hidden',
-                minWidth: 230,
-                maxWidth: 310,
-                minHeight: 280,
                 mx: 'auto',
+                ...(isList
+                    ? { width: '100%', minHeight: 96, alignItems: 'center' }
+                    : { minWidth: 230, maxWidth: 310, minHeight: 280 }),
             }}
         >
             <CardOverflow
                 sx={{
-                    borderBottom: '1px solid',
                     borderColor: 'neutral.outlinedBorder',
                     borderRadius: 0,
+                    ...(isList
+                        ? { borderRight: '1px solid', width: 96, flexShrink: 0 }
+                        : { borderBottom: '1px solid' }),
                 }}
             >
-                <AspectRatio minHeight={230} color="neutral">
+                <AspectRatio minHeight={isList ? 96 : 230} ratio={isList ? "1" : undefined} color="neutral">
                     {imageOk && thumbnailUrl ? (
                         <Image
                             src={thumbnailUrl}
@@ -55,11 +60,11 @@ export default function PaperCard({ paper }: FileCardProps) {
                             onError={() => setImageOk(false)}
                         />
                     ) : (
-                       <DocumentIcon className="ss-icon"  /> 
+                       <DocumentIcon className="ss-icon"  />
                     )}
                 </AspectRatio>
             </CardOverflow>
-            <Box sx={{ display: 'flex', alignItems: 'start', width: '100%', px: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'start', width: '100%', px: 2, ...(isList && { py: 1 }) }}>
                 <Box sx={{ flex: 1, maxHeight: 54, pb: 2, width: '100%' }}>
                     <Typography level="title-sm"
                         sx={{

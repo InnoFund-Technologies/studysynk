@@ -29,9 +29,9 @@ const STUDY_MOOD_IMAGES = [
 
 export default function PaperPreview() {
     const {paper, showPaperPreview} = usePaperPreview();
-    const links = process.env.NEXT_PUBLIC_URL;
     const [isCopied, setIsCopied] = React.useState(false);
     const [isDownloading, setIsDownloading] = React.useState(false);
+    const [downloadError, setDownloadError] = React.useState(false);
 
     const moodImage = React.useMemo(() => {
         const id = paper?._id ?? "";
@@ -42,6 +42,7 @@ export default function PaperPreview() {
     const downloadPaper = async () => {
         if (!paper?.url) return;
         setIsDownloading(true);
+        setDownloadError(false);
         try {
             const response = await fetch(paper.url);
             if (!response.ok) throw new Error("Failed to fetch paper");
@@ -76,13 +77,14 @@ export default function PaperPreview() {
             URL.revokeObjectURL(objectUrl);
         } catch (error) {
             console.error("Error downloading paper:", error);
+            setDownloadError(true);
         } finally {
             setIsDownloading(false);
         }
     };
 
     const sharePaper = async () => {
-        const shareUrl = paper?.url ?? links ?? '';
+        const shareUrl = paper?.url ?? '';
         if (!shareUrl) return;
 
         const courseName = Array.isArray(paper?.course?.name)
@@ -176,7 +178,7 @@ export default function PaperPreview() {
                     }}>
                         Copied!
                     </Chip>
-                    <IconButton onClick={sharePaper} disabled={!paper.url && !links}>
+                    <IconButton onClick={sharePaper} disabled={!paper.url}>
                         <ShareIcon className={"ss-icon w-5 h-5"}/>
                     </IconButton>
                 </Box>
@@ -244,6 +246,11 @@ export default function PaperPreview() {
                 >
                     Download paper
                 </Button>
+                {downloadError && (
+                    <Typography level="body-xs" color="danger" sx={{px: 1, mt: 0.5}}>
+                        Couldn’t download this paper. Please try again.
+                    </Typography>
+                )}
             </Box>
         </Sheet>
     )
