@@ -1,5 +1,29 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "images.unsplash.com",
+            },
+            {
+                protocol: "https",
+                hostname: "*.public.blob.vercel-storage.com",
+            },
+        ],
+    },
+    experimental: {
+        // @napi-rs/canvas is a native module — keep it external so Next doesn't
+        // try to bundle the .node binary.
+        serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
+        // pdfjs reads standard_fonts via a runtime filesystem path, so they
+        // aren't detected by static analysis — force them into the upload
+        // route's serverless bundle.
+        outputFileTracingIncludes: {
+            "/api/upload": ["./node_modules/pdfjs-dist/standard_fonts/**"],
+        },
+    },
+};
 
 module.exports = nextConfig
 

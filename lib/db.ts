@@ -47,13 +47,19 @@ function serialize<T>(snap: FirebaseFirestore.DocumentSnapshot): WithId<T> {
     return {_id: snap.id, ...(normalize(snap.data()) as T)} as WithId<T>;
 }
 
-/** Find one document by a field equality, or null. */
+/**
+ * Find one document by a field filter, or null. Defaults to equality; pass an
+ * operator (e.g. "array-contains") for other comparisons. Returns null for an
+ * undefined value rather than handing it to Firestore, which would throw.
+ */
 export async function findOne<T>(
     name: CollectionName,
     field: string,
     value: unknown,
+    op: FirebaseFirestore.WhereFilterOp = "==",
 ): Promise<WithId<T> | null> {
-    const snap = await col(name).where(field, "==", value).limit(1).get();
+    if (value === undefined) return null;
+    const snap = await col(name).where(field, op, value).limit(1).get();
     if (snap.empty) return null;
     return serialize<T>(snap.docs[0]);
 }
@@ -109,14 +115,29 @@ export async function update(
     await col(name).doc(id).update(payload);
 }
 
-/** Append a value to an array field on a parent document (replaces the Mongoose `push` + `save` pattern). */
+/** Whether a document exists in the given collection. */
+export async function exists(
+    name: CollectionName,
+    id: string,
+): Promise<boolean> {
+    const snap = await col(name).doc(id).get();
+    return snap.exists;
+}
+
+/**
+ * Append a value to an array field on a parent document (replaces the Mongoose
+ * `push` + `save` pattern). No-ops if the parent document does not exist, so a
+ * stale id never throws NOT_FOUND. Returns whether the update was applied.
+ */
 export async function pushToArray(
     name: CollectionName,
     id: string,
     field: string,
     value: unknown,
-): Promise<void> {
+): Promise<boolean> {
+    if (!(await exists(name, id))) return false;
     await col(name).doc(id).update({[field]: FieldValue.arrayUnion(value)});
+    return true;
 }
 
 export {col};

@@ -59,8 +59,9 @@ export default function AddNewPage() {
         const formData = new FormData(event.currentTarget);
 
         let url: string;
+        let thumbnailUrl: string | undefined;
         try {
-            url = await uploadPaper(file);
+            ({url, thumbnailUrl} = await uploadPaper(file));
         } catch (error) {
             console.error(error);
             notify("Failed to upload the paper. Please try again.", "error");
@@ -72,6 +73,7 @@ export default function AddNewPage() {
             ...Object.fromEntries(formData),
             paperType,
             url,
+            thumbnailUrl,
             university: {
                 name: university?.name,
                 code: university?.code,
@@ -172,8 +174,8 @@ export default function AddNewPage() {
                                                 <Input name={"year"} type="number"
                                                        slotProps={{
                                                            input: {
-                                                               min: 2000,
-                                                               max: 2024,
+                                                               min: 1900,
+                                                               max: new Date().getFullYear(),
                                                                step: 1,
                                                            }
                                                        }}

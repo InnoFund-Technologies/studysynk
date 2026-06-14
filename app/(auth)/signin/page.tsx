@@ -12,9 +12,10 @@ import DocumentMagnifyingGlassIcon from "@heroicons/react/24/solid/DocumentMagni
 import {signIn, useSession} from "next-auth/react";
 import {useRouter} from "next/navigation";
 import {ToastContainer} from "react-toastify";
+import {useEffect} from "react";
 
 export default function SignIn() {
-    const session = useSession();
+    const {status} = useSession();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -23,9 +24,11 @@ export default function SignIn() {
         await signIn("google", {callbackUrl: "/"});
     }
 
-    if (!session) {
-        return router.replace('/')
-    }
+    useEffect(() => {
+        if (status === "authenticated") {
+            router.replace('/');
+        }
+    }, [status, router]);
 
     return (
         <>

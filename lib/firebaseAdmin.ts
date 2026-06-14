@@ -1,14 +1,13 @@
 import {App, applicationDefault, cert, getApp, getApps, initializeApp, ServiceAccount} from "firebase-admin/app";
 import {Firestore, getFirestore} from "firebase-admin/firestore";
-import {getStorage, Storage} from "firebase-admin/storage";
 
 /**
- * Server-side Firebase Admin initialization.
+ * Server-side Firebase Admin initialization (Firestore).
  *
  * Credentials come from FIREBASE_SERVICE_ACCOUNT_KEY (stringified service-account
- * JSON); the storage bucket from FIREBASE_STORAGE_BUCKET. Initialization is lazy
- * so the app can boot without credentials — an error is only thrown when a route
- * actually touches Firestore/Storage, mirroring the previous lazy DB connection.
+ * JSON). Initialization is lazy so the app can boot without credentials — an
+ * error is only thrown when a route actually touches Firestore, mirroring the
+ * previous lazy DB connection. File uploads use Vercel Blob, not Storage.
  */
 let app: App | undefined;
 
@@ -17,14 +16,23 @@ function getAdminApp(): App {
     if (app) return app;
 
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    const credential = raw
-        ? cert(JSON.parse(raw) as ServiceAccount)
-        : applicationDefault();
+    let credential;
+    if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        // In .env files the PEM's newlines are stored as the literal
+        // characters "\n"; restore them so the key parses as valid PEM.
+        // Google's service-account JSON uses snake_case (private_key).
+        for (const key of ["private_key", "privateKey"]) {
+            if (typeof parsed[key] === "string") {
+                parsed[key] = (parsed[key] as string).replace(/\\n/g, "\n");
+            }
+        }
+        credential = cert(parsed as ServiceAccount);
+    } else {
+        credential = applicationDefault();
+    }
 
-    app = initializeApp({
-        credential,
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
+    app = initializeApp({credential});
     return app;
 }
 
@@ -39,6 +47,5 @@ function lazyProxy<T extends object>(resolve: () => T): T {
 }
 
 export const adminDb = lazyProxy<Firestore>(() => getFirestore(getAdminApp()));
-export const adminStorage = lazyProxy<Storage>(() => getStorage(getAdminApp()));
 
 export default getAdminApp;

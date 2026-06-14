@@ -122,6 +122,8 @@ export default function MyProfile() {
                     startDecorator={<EnvelopeIcon className="w-6 h-6 ss-icon"/>}
                     placeholder="email"
                     name="email"
+                    readOnly
+                    disabled
                     defaultValue={session?.user?.email ?? ""}
                 />
             </FormControl>
@@ -154,8 +156,7 @@ export default function MyProfile() {
                 <FormLabel>Bio</FormLabel>
                 <FormHelperText>Write a short introduction.</FormHelperText>
             </Box>
-            <Box>
-                <EditorToolbar/>
+            <Box> 
                 <Textarea
                     minRows={4}
                     sx={{mt: 1.5}}

@@ -103,6 +103,7 @@ export interface IPaper {
     internalExaminer: string;
     externalExaminer: string;
     url: string;
+    thumbnailUrl?: string;
     description: string;
     author: {
         id: string;

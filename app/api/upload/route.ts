@@ -1,12 +1,17 @@
 import {NextResponse} from "next/server";
 import {getServerSession} from "next-auth";
+import {put} from "@vercel/blob";
 import authOptions from "@/lib/utils/authOptions";
-import {adminStorage} from "@/lib/firebaseAdmin";
+import {generateThumbnail} from "@/lib/utils/generateThumbnail";
+
+// PDF rasterization needs the Node.js runtime (native canvas), not edge.
+export const runtime = "nodejs";
 
 /**
  * Server-side PDF upload. Verifies the NextAuth session, then writes the file to
- * Firebase Storage with the Admin SDK and returns a public download URL. Keeping
- * this server-side means Storage rules can stay fully locked to clients.
+ * Vercel Blob and returns the public download URL. Keeping this server-side means
+ * the BLOB_READ_WRITE_TOKEN never reaches the client. A WebP thumbnail of the
+ * first page is generated and stored alongside the PDF.
  */
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
@@ -24,19 +29,28 @@ export async function POST(request: Request) {
         return NextResponse.json({message: "Only PDF files are allowed"}, {status: 400});
     }
 
+    const id = crypto.randomUUID();
     const ext = file.name.includes(".") ? file.name.split(".").pop() : "pdf";
-    const objectPath = `papers/${crypto.randomUUID()}.${ext}`;
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const bucket = adminStorage.bucket();
-    const storedFile = bucket.file(objectPath);
-
-    await storedFile.save(buffer, {
+    const blob = await put(`papers/${id}.${ext}`, file, {
+        access: "public",
         contentType: "application/pdf",
-        resumable: false,
     });
-    await storedFile.makePublic();
 
-    const url = `https://storage.googleapis.com/${bucket.name}/${encodeURIComponent(objectPath)}`;
-    return NextResponse.json({url});
+    // Generate and store a first-page thumbnail. If rasterization fails (e.g. a
+    // malformed PDF), still return the upload so the paper can be submitted —
+    // the card falls back to a placeholder when thumbnailUrl is absent.
+    let thumbnailUrl: string | undefined;
+    try {
+        const thumbnail = await generateThumbnail(await file.arrayBuffer());
+        const thumbBlob = await put(`papers/${id}.webp`, thumbnail, {
+            access: "public",
+            contentType: "image/webp",
+        });
+        thumbnailUrl = thumbBlob.url;
+    } catch (error) {
+        console.error("Thumbnail generation failed:", error);
+    }
+
+    return NextResponse.json({url: blob.url, thumbnailUrl});
 }

@@ -57,7 +57,7 @@ export default function DropZone({sx, accept, inputId, onFileChange, ...props}: 
     return (
         <>
             {
-                file ? <FileCard fileName={file[0].name} fileSize={file[0].size} handleDelete={handleDelete}/>
+                file && file[0] ? <FileCard fileName={file[0].name} fileSize={file[0].size} handleDelete={handleDelete}/>
                     : (
                         <Card
                             variant="outlined"

@@ -1,6 +1,5 @@
 import notify from "@/lib/utils/notify";
 import React from "react";
-import {RenderParameters} from "pdfjs-dist/types/src/display/api";
 
 export const handleApiResponse = (event: React.FormEvent<HTMLFormElement>) => async (response: Response) => {
     if (response.ok) {
@@ -89,47 +88,4 @@ export const getMonth = (month: number, length: 'long' | 'short'): string => {
 export const trimProgram = (program: string): string => {
 
     return program.replace('bachelor of science honours degree', 'BSc (hons)')
-}
-
-export const useThumbnail = (canvasContainer: React.RefObject<HTMLDivElement>, uri: string) => {
-    React.useEffect(() => {
-        (async function () {
-            import('pdfjs-dist').then(async (pdfJS) => {
-
-                // We import this here so that it's only loaded during client-side rendering.
-                pdfJS.GlobalWorkerOptions.workerSrc =
-                    window.location.origin + '/pdf.worker.min.mjs';
-                const pdf = await pdfJS.getDocument(uri).promise;
-                const canvas = document.createElement("canvas");
-                canvas.style.position = 'absolute';
-                canvas.style.left = '50%';
-                canvas.style.transform = 'translate(-50%, 0)';
-
-                const page = await pdf.getPage(1);
-                const viewport = page.getViewport({scale: 0.55});
-
-                // Prepare canvas using PDF page dimensions.
-                const canvasContext = canvas.getContext('2d') as CanvasRenderingContext2D;
-                canvas.height = 230;
-                canvas.width = 321;
-
-                // Render PDF page into canvas context.
-                const renderContext = {canvasContext, viewport, background: '#fff'} as RenderParameters;
-                page.render(renderContext);
-
-                if (!canvasContainer.current) {
-                    return null;
-                }
-                const existingCanvas = canvasContainer.current.childNodes[0];
-
-                if (existingCanvas) {
-                    // Replace existing canvas with the new one
-                    canvasContainer.current.replaceChild(canvas, existingCanvas);
-                } else {
-                    // Append the new canvas if there is no existing canvas
-                    canvasContainer.current.appendChild(canvas);
-                }
-            });
-        })();
-    }, [canvasContainer, uri]);
 }
