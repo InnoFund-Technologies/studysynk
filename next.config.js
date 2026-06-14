@@ -1,5 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // react-pdf ships pdfjs as ESM (pdf.mjs); Next 14's webpack mis-wraps it
+    // unless the package is transpiled through the app's build. (pdfjs-dist
+    // itself stays external for the server-side thumbnail generator.)
+    transpilePackages: ["react-pdf"],
+    webpack: (config) => {
+        // Let webpack resolve the .mjs build of pdfjs that react-pdf imports.
+        config.resolve.alias = {
+            ...config.resolve.alias,
+            canvas: false,
+        };
+        return config;
+    },
     images: {
         remotePatterns: [
             {

@@ -1,5 +1,6 @@
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Sheet from "@mui/joy/Sheet";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
@@ -12,6 +13,7 @@ import DocumentArrowDownIcon from "@heroicons/react/24/outline/DocumentArrowDown
 import {usePaperPreview} from "@/context/paperPreviewContext";
 import Chip from "@mui/joy/Chip";
 import ShareIcon from "@heroicons/react/24/outline/ShareIcon";
+import ArrowTopRightOnSquareIcon from "@heroicons/react/24/outline/ArrowTopRightOnSquareIcon";
 import {getMonth, trimProgram} from "@/lib/utils/helper";
 
 // Curated study-mood photos (Unsplash). One is chosen per paper, kept stable by
@@ -84,7 +86,11 @@ export default function PaperPreview() {
     };
 
     const sharePaper = async () => {
-        const shareUrl = paper?.url ?? '';
+        // Prefer the in-app per-paper page so recipients land on the viewer,
+        // falling back to the raw PDF url when the origin isn't available.
+        const shareUrl = paper?._id && typeof window !== 'undefined'
+            ? `${window.location.origin}/papers/${paper._id}`
+            : paper?.url ?? '';
         if (!shareUrl) return;
 
         const courseName = Array.isArray(paper?.course?.name)
@@ -178,7 +184,7 @@ export default function PaperPreview() {
                     }}>
                         Copied!
                     </Chip>
-                    <IconButton onClick={sharePaper} disabled={!paper.url}>
+                    <IconButton onClick={sharePaper} disabled={!paper._id && !paper.url}>
                         <ShareIcon className={"ss-icon w-5 h-5"}/>
                     </IconButton>
                 </Box>
@@ -235,7 +241,16 @@ export default function PaperPreview() {
 
             </Box>
             <Divider/>
-            <Box sx={{py: 2, px: 1}}>
+            <Box sx={{py: 2, px: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1}}>
+                <Button
+                    component={Link}
+                    href={`/papers/${paper._id}`}
+                    variant="soft"
+                    size="sm"
+                    endDecorator={<ArrowTopRightOnSquareIcon className="ss-icon w-5 h-5"/>}
+                >
+                    View full paper
+                </Button>
                 <Button
                     variant="plain"
                     size="sm"

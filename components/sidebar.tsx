@@ -41,6 +41,14 @@ export const sidebarLinks: readonly Options[] = [
     },
 ]
 
+// Quick filters deep-link into the papers list's facet params (see
+// components/papers/FacetFilters.tsx). Paper type is a stable global category.
+const quickFilters = [
+    {name: 'All papers', href: '/papers', color: 'primary.300'},
+    {name: 'Exam papers', href: '/papers?type=Exam paper', color: 'success.400'},
+    {name: 'Question papers', href: '/papers?type=Question paper', color: 'warning.500'},
+] as const;
+
 // sidebar props
 interface SidebarProps {
     currentRoute: string;
@@ -88,7 +96,7 @@ export default function Sidebar({currentRoute}: SidebarProps) {
             </ListItem>
             <ListItem nested sx={{mt: 2}}>
                 <ListSubheader id="expand-tags">
-                    Tags
+                    Quick filters
                 </ListSubheader>
                 <List
                     aria-labelledby="nav-list-tags"
@@ -97,66 +105,25 @@ export default function Sidebar({currentRoute}: SidebarProps) {
                         '--ListItemDecorator-size': '32px',
                     }}
                 >
-                    <ListItem>
-                        <ListItemButton>
-                            <ListItemDecorator>
-                                <Box
-                                    sx={{
-                                        width: '10px',
-                                        height: '10px',
-                                        borderRadius: '99px',
-                                        bgcolor: 'primary.300',
-                                    }}
-                                />
-                            </ListItemDecorator>
-                            <ListItemContent>Courses</ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem>
-                        <ListItemButton>
-                            <ListItemDecorator>
-                                <Box
-                                    sx={{
-                                        width: '10px',
-                                        height: '10px',
-                                        borderRadius: '99px',
-                                        bgcolor: 'danger.400',
-                                    }}
-                                />
-                            </ListItemDecorator>
-                            <ListItemContent>Work</ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem>
-                        <ListItemButton>
-                            <ListItemDecorator>
-                                <Box
-                                    sx={{
-                                        width: '10px',
-                                        height: '10px',
-                                        borderRadius: '99px',
-                                        bgcolor: 'warning.500',
-                                    }}
-                                />
-                            </ListItemDecorator>
-                            <ListItemContent>Travels</ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
-                    <ListItem>
-                        <ListItemButton>
-                            <ListItemDecorator>
-                                <Box
-                                    sx={{
-                                        width: '10px',
-                                        height: '10px',
-                                        borderRadius: '99px',
-                                        bgcolor: 'success.400',
-                                    }}
-                                />
-                            </ListItemDecorator>
-                            <ListItemContent>Concert tickets</ListItemContent>
-                        </ListItemButton>
-                    </ListItem>
+                    {quickFilters.map((filter) => (
+                        <Link href={filter.href} key={filter.name}>
+                            <ListItem>
+                                <ListItemButton selected={currentRoute === filter.href}>
+                                    <ListItemDecorator>
+                                        <Box
+                                            sx={{
+                                                width: '10px',
+                                                height: '10px',
+                                                borderRadius: '99px',
+                                                bgcolor: filter.color,
+                                            }}
+                                        />
+                                    </ListItemDecorator>
+                                    <ListItemContent>{filter.name}</ListItemContent>
+                                </ListItemButton>
+                            </ListItem>
+                        </Link>
+                    ))}
                 </List>
             </ListItem>
         </List>

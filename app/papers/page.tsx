@@ -7,6 +7,7 @@ import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
 import FilterOptions, {PapersView} from "@/components/papers/filterOptions";
 import PapersTable from "@/components/papers/PapersTable";
+import FacetFilters, {FACETS, FacetKey} from "@/components/papers/FacetFilters";
 import {IPaper} from "@/lib/types";
 import {usePaperPreview} from "@/context/paperPreviewContext";
 import {useSearchParams} from "next/navigation";
@@ -54,10 +55,26 @@ function PapersList() {
         })();
     }, []);
 
+    // Active facet selections, read from the URL.
+    const facetSelections = React.useMemo(() => {
+        const out: Partial<Record<FacetKey, string>> = {};
+        (Object.keys(FACETS) as FacetKey[]).forEach((key) => {
+            const value = searchParams.get(key);
+            if (value) out[key] = value;
+        });
+        return out;
+    }, [searchParams]);
+
     const filteredPapers = React.useMemo(() => {
-        if (!query) return papers;
-        return papers.filter((paper) => searchableText(paper).includes(query));
-    }, [papers, query]);
+        return papers.filter((paper) => {
+            if (query && !searchableText(paper).includes(query)) return false;
+            return (Object.keys(facetSelections) as FacetKey[]).every(
+                (key) => FACETS[key](paper) === facetSelections[key],
+            );
+        });
+    }, [papers, query, facetSelections]);
+
+    const hasActiveFilters = query.length > 0 || Object.keys(facetSelections).length > 0;
 
     const handlePaperViewClose = () => {
         showPaperPreview(null)
@@ -78,15 +95,19 @@ function PapersList() {
     return (
         <Styled.Section sx={{pb: {xs: 10}}}>
             <Box>
+                <Box sx={{pt: 2}}>
+                    <FacetFilters papers={papers}/>
+                </Box>
                 <FilterOptions view={view} onViewChange={setView}/>
-                {query && (
+                {hasActiveFilters && (
                     <Typography level="body-sm" sx={{mb: 2}}>
-                        {filteredPapers.length} result{filteredPapers.length === 1 ? '' : 's'} for “{query}”
+                        {filteredPapers.length} result{filteredPapers.length === 1 ? '' : 's'}
+                        {query ? ` for “${query}”` : ''}
                     </Typography>
                 )}
                 {filteredPapers.length === 0 ? (
                     <Typography level="body-md" textColor="text.tertiary" sx={{py: 6, textAlign: 'center'}}>
-                        {query ? 'No papers match your search.' : 'No papers yet.'}
+                        {hasActiveFilters ? 'No papers match these filters.' : 'No papers yet.'}
                     </Typography>
                 ) : view === "list" ? (
                     <PapersTable papers={filteredPapers}/>
