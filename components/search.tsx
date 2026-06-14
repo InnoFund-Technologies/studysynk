@@ -6,7 +6,7 @@ import IconButton from "@mui/joy/IconButton";
 import Box from "@mui/joy/Box";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 
-export default function Search() {
+function SearchInput() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -78,4 +78,15 @@ export default function Search() {
             </IconButton>
         </Box>
     )
+}
+
+// useSearchParams() forces a client-side bailout unless it sits under a
+// Suspense boundary. Search lives in the navbar (rendered on every page), so
+// without this wrapper every page fails static prerendering at build time.
+export default function Search() {
+    return (
+        <React.Suspense>
+            <SearchInput/>
+        </React.Suspense>
+    );
 }

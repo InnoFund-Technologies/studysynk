@@ -25,6 +25,9 @@ const nextConfig = {
         ],
     },
     experimental: {
+        // Enable instrumentation.ts (forces IPv4-first DNS at startup so the
+        // Google OAuth token exchange doesn't stall on a dead IPv6 route).
+        instrumentationHook: true,
         // @napi-rs/canvas is a native module — keep it external so Next doesn't
         // try to bundle the .node binary.
         serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],

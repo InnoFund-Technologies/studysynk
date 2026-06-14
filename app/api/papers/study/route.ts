@@ -132,6 +132,29 @@ export async function POST(request: Request) {
         return NextResponse.json({mode, mock: false, summary});
     } catch (error) {
         console.error("Study assistant error:", error);
+
+        // Surface configuration problems (bad key, no credits, lack of access)
+        // clearly instead of a generic "try again" — retrying won't help.
+        if (error instanceof Anthropic.APIError) {
+            const detail = String(error.message ?? "");
+            if (
+                error.status === 401 ||
+                error.status === 403 ||
+                /credit balance|billing|too low/i.test(detail)
+            ) {
+                return NextResponse.json(
+                    {message: "AI is not available — the API account needs credits or access. Ask an admin to check Anthropic billing."},
+                    {status: 503},
+                );
+            }
+            if (error.status === 429) {
+                return NextResponse.json(
+                    {message: "The study assistant is busy right now. Please try again in a moment."},
+                    {status: 429},
+                );
+            }
+        }
+
         return NextResponse.json(
             {message: "The study assistant is unavailable right now. Please try again."},
             {status: 502},
